@@ -5,11 +5,17 @@ Arduino arduino;
 ArrayList movovtim; //number movements at each interval of time
 Point[][] graph;
 
-//values
-public float thresh=2.0/3; //fraction of initial pressure at which threshhold is reached
-int tim = 10; 
+//constant values
+public final float thresh=2.0/3; //fraction of initial pressure at which threshhold is reached
+public final int pillowscale=16; 
 
-class Point{
+
+public final int tim = 10; 
+public final int xlen=16; //1-54
+public final int ylen=16; //1-16
+
+
+public class Point{
   private Arduino arduino;
   private int trigPin; //digital output pin sending signal
   private int sensePin; //analog input pin
@@ -34,7 +40,7 @@ class Point{
   }
   
  float getPress(){
-    arduino.digitalWrite(trigPin, Arduino.HIGH);
+    arduino.digitalWrite(trigPin, Arduino.HIGH); //send signal to sensor
     delay(1);
     float press = intpress/arduino.analogRead(sensePin)*100; //gets voltage value coming through pressure sensor, more pressure -> less voltage
                                                   //degree of pressure represented as ratio between unpressed voltage and current voltage
@@ -57,21 +63,43 @@ class Point{
     }
     return false;
   }
+  
+  //draw circle or rectangle depending on isMove()
+  //draw color ranging from yellow to red depending on getPress()
+  void drawP(){
+    fill(255, getPress()/intpress*255-255%(getPress()/intpress*255), 0) ; //Make color range from red to yellow depending on amount of pressure
+    if(isMove()){
+      rectMode(CENTER);
+      rect(trigPin*scale, sensePin*scale, (scale-10)/2, (scale-10)/2); 
+    }
+    else{
+      ellipse(trigPin*scale, sensePin*scale, (scale-10)/2, (scale-10)/2);
+    }
+   
+  }
 }
 
 
-//pins
+
 void setup(){
   arduino = new Arduino(this, Arduino.list()[0], 57600);
-  movovtim= new ArrayList();
-  graph=new Point[16][16];
+  graph=new Point[xlen][ylen];
   for(int i=0; i<256; i++){
-    graph[i/16][i%16]=new Point(arduino, i/16, i%16);
+    graph[i/xlen][i%xlen]=new Point(arduino, i/xlen, i%ylen);
   }
   
-  size(600,600);
+  size(3456, 1024);
   background(0,0,0);
 }
 
 void draw(){
+  long movs=0;
+  for(Point[] ps:graph){
+    for(Point p:ps){
+       if(p.isMove()) movs++;
+       p.drawP();
+    }
+  }
+  movovtim.add(movs);    
+  delay(tim);
 }
