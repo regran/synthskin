@@ -3,33 +3,32 @@ import processing.serial.*;
 import cc.arduino.*;
 
 Arduino arduino;
-pMap pm; //number movements at each interval of time
+pMap pm; 
 barGraph bg;
 Button bStart;
 Button bStop;
 Button bRestart;
 Button bSave;
-Point test;
+//Point test;
 
 public boolean start;
 
-
-//constant values
+//values
 
 public final int tim = 10; 
-final int xlen=5; //1-54 number of digital pins
-final int ylen=5; //1-16 number of analog pins
-public final float thresh=2.0/3; //fraction of initial pressure at which threshhold is reached
-public float mapscale; 
-public float mapx; //x coordinate of top left corner of pressure map
-public float mapy; //y coordinate of top right corner of pressure map
-public float graphx; //graph width
-public float graphy; //graph height
+final int xlen=5; //0 to 16 pins
+final int ylen=5; //0 to (16-xlen) pins
+public final float thresh=0.5; //fraction of initial pressure at which threshhold is reached
+float mapscale;  //coefficient for scaling of pressure map based on screen size
+float mapx; //x coordinate of left edge of pressure map
+float mapy; //y coordinate of top edge of pressure map
+float graphx; //graph width
+float graphy; //graph height
 public float margin; //distance of graph from edge of screen
-public float buttonsx; 
-public float buttonsy;
-public float buttonsw; //width of buttons
-public float buttonsh; //height of buttons
+public float buttonsx; //x coordinate of left edge of button
+public float buttonsy; //y coordinate of top edge of top button
+float buttonsw; //width of buttons
+float buttonsh; //height of buttons
 
 
 
@@ -39,47 +38,40 @@ public float buttonsh; //height of buttons
 //a pillow is 20 inches by 26 inches
 
 
-public class Point{
-  private Arduino arduino;
-  private int x; //x coordinate
-  private int y; //y coordinate of point
-  private int pin;
-  private boolean state;
-  private float intpress;
-  private float pressthresh;
+class Line{
+  private Arduino arduino; //arduino
+  private int pin; //analog input pin
+  private float intpress; //initial pressure value
+  private float pressthresh; //threshhold for state change
+  private boolean state; //currently been pressed or not
   private float press;
-  private float c; //to remove
-  public Point(Arduino a, int xcoord, int ycoord, int ap){
+  public Line(Arduino a, int p){
     arduino = a;
-    x=xcoord;
-    y=ycoord;
-    pin=ap;
+    pin=p;
     state=false;
-    arduino.pinMode(pin,Arduino.INPUT);
-    intpress=0;
-    //get initial unpressed pressure values
-    //sometimes it takes a few moments for it to read the voltage at startup and it gives 0s instead
+    a.pinMode(p, Arduino.INPUT);
     intpress=getPress();
-    print(press);
-    println("I'm trying yo");
-    pressthresh=intpress*thresh; //pressure threshhold is a fraction of the initial pressure value
+    pressthresh=intpress*thresh;
   }
   
-  float getInit(){
-    return intpress;
-  }
-  
- float getPress(){
-   print("aaaaa");
-    press = arduino.analogRead(sensePin); //gets voltage value coming through pressure sensor, more pressure -> less voltage
-                                                  //degree of pressure represented as ratio between unpressed voltage and current voltage
-    while(press==0){
-      press=arduino.analogRead(sensePin);
+  float updatePress(){
+    while((press=arduino.analogRead(pin))==0){
       delay(1);
     }
     return press;
   }
-//stopped makingchanges here, for future self
+
+  float getInit(){
+    return intpress;
+  }
+  
+  float getPress(){
+    return press;
+  }
+  
+  boolean getState(){
+    return state;
+  }
   
   boolean isMove(){
     if(press<pressthresh){
@@ -96,23 +88,54 @@ public class Point{
     return false;
   }
   
-  //draw circle or rectangle depending on isMove()
-  //draw color ranging from yellow to red depending on getPress()
-  public void drawP(float x, float y, float scale){
+  
+}
+
+class Point{
+  private Line x;
+  private Line y;
+  int xval;
+  int yval;
+  float c; //color
+  boolean state;
+
+  public Point(Line xl, Line yl, int xv, int yv){
+    x=xl;
+    y=yl;
+    xval=xv;
+    yval=yv;
+    state=false;
+    c=0;
+  }
+  
+  boolean isPress(){
+    return (x.getState() && y.getState());
+  }
+  
+  boolean isMove(){
+    return (x.isMove() || y.isMove());
+  }
+  
+  public void drawP(float xcoord, float ycoord, float scale){
     noStroke();
-    if(start) c=press/intpress*255-255%(press/intpress*255);
+
+    if(start) c=(x.getPress()/x.getInit()+y.getPress()/y.getInit())/2*255;
+    else c=0;
     fill(255, c, 0) ; //Make color range from red to yellow depending on amount of pressure
-    if(isMove()){
-      rect(x+(sensePin)*scale, y+trigPin*scale, (scale-10)/2, (scale-10)/2); 
-      
-    }
-    else{
-      ellipseMode(CORNER);
-      ellipse(x+(sensePin+.1)*scale, y+(trigPin+.1)*scale, scale*.8, scale*.8);
-    }
+    //if(isMove()){
+    //  rect(xcoord+(xval+.1)*scale, ycoord+(trigPin+.1)*scale, scale*.8, scale*.8);
+    //}
+    //else{
+    //  ellipseMode(CORNER);
+    //  ellipse(xcoord+(sxval+.1)*scale, ycoord+(yval+.1)*scale, scale*.8, scale*.8);
+    //}
+    textSize(scale*.8/3);
+    textAlign(LEFT, TOP);
+    text(Float.toString(x.getPress()+y.getPress()),xcoord+(xval+.1)*scale, ycoord+(yval+.1)*scale);
    
   }
 }
+  
 
 public class pMap{
   Point[][] map;
@@ -122,17 +145,24 @@ public class pMap{
   float x;
   float y;
   float scale;
-  public pMap(float xcoord, float ycoord, float s, Arduino arduino, int xs, int ys){
+  Line[] xs;
+  Line[] ys;
+  public pMap(float xcoord, float ycoord, float s, Arduino arduino, int xd, int yd){
+    
     a=arduino;
-    xlen=xs;
-    ylen=ys;
+    xlen=xd;
+    ylen=yd;
     x=xcoord;
     y=ycoord;
     scale=s; 
     map=new Point[xlen][ylen];
+    xs=new Line[xlen];
+    ys=new Line[ylen];
     for(int i=0; i<xlen; i++){
+      xs[i] = new Line(a, i);
       for(int j=0; j<ylen;j++){
-        map[i][j]=new Point(a, i, j);
+        ys[i]=new Line(a, j+xlen);
+        map[i][j]=new Point(xs[i],ys[j],i,j);
       }
     }
   }
@@ -141,7 +171,6 @@ public class pMap{
    noFill();
    stroke(100);
    rect(x, y, ylen*scale, xlen*scale);
-   if(start) getPress();
    for(Point[] ps:map){
     for(Point p:ps){
        if(p.isMove()) movs++;
@@ -149,21 +178,6 @@ public class pMap{
     }
    }
   return movs;
-  }
-  void getPress(){
-    for(int i=1; i<=xlen;i++){
-      a.digitalWrite(i, Arduino.HIGH); //send signal to sensor
-      delay(1);
-      for(int j=0; j<ylen; j++){
-        print(i);
-        print(j);
-        println(a.analogRead(j));
-        map[i-1][j].updatepress(a.analogRead(j)); //gets voltage value coming through pressure sensor, more pressure -> less voltage
-                                                  //degree of pressure represented as ratio between unpressed voltage and current voltage
-      }
-    a.digitalWrite(i, Arduino.LOW);
-    delay(1); //dont break the arduino pls
-    }
   }
   
 }
@@ -326,7 +340,7 @@ void draw(){
   bRestart.drawB();
   bSave.drawB();
   bg.drawG();
-  pm.drawM();
+//  pm.drawM(); //called in bg i think?
   delay(tim);
 //test.drawP(mapx,mapy,mapscale);
 //println(test.getPress());
@@ -339,6 +353,8 @@ void mouseClicked(){
   if (bStop.inB(mouseX, mouseY)) start=false;
   if (bRestart.inB(mouseX,mouseY)){
     bg.clear();
+    pm=new pMap(mapx, mapy, mapscale, arduino, xlen, ylen);
     start=false;
   }
   if (bSave.inB(mouseX, mouseY)) save(Integer.toString(month()) + Integer.toString(day()) + Integer.toString(year())+Integer.toString(minute())+ ".png");
+}
