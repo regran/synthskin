@@ -1,3 +1,4 @@
+
 import processing.serial.*;
 import cc.arduino.*;
 
@@ -40,25 +41,24 @@ public float buttonsh; //height of buttons
 
 public class Point{
   private Arduino arduino;
-  private int trigPin; //digital output pin sending signal
-  private int sensePin; //analog input pin
+  private int x; //x coordinate
+  private int y; //y coordinate of point
+  private int pin;
   private boolean state;
   private float intpress;
   private float pressthresh;
   private float press;
   private float c; //to remove
-  public Point(Arduino a, int dp, int ap){
+  public Point(Arduino a, int xcoord, int ycoord, int ap){
     arduino = a;
-    trigPin =dp;
-    sensePin=ap;
+    x=xcoord;
+    y=ycoord;
+    pin=ap;
     state=false;
-    arduino.pinMode(trigPin, Arduino.OUTPUT);
-    arduino.pinMode(sensePin,Arduino.INPUT);
-    arduino.digitalWrite(trigPin, Arduino.LOW);
+    arduino.pinMode(pin,Arduino.INPUT);
     intpress=0;
     //get initial unpressed pressure values
     //sometimes it takes a few moments for it to read the voltage at startup and it gives 0s instead
-
     intpress=getPress();
     print(press);
     println("I'm trying yo");
@@ -71,21 +71,15 @@ public class Point{
   
  float getPress(){
    print("aaaaa");
-    arduino.digitalWrite(trigPin, Arduino.HIGH); //send signal to sensor
-    delay(10);
-    
     press = arduino.analogRead(sensePin); //gets voltage value coming through pressure sensor, more pressure -> less voltage
                                                   //degree of pressure represented as ratio between unpressed voltage and current voltage
     while(press==0){
       press=arduino.analogRead(sensePin);
+      delay(1);
     }
-    arduino.digitalWrite(trigPin, Arduino.LOW);
-    delay(1); //dont break the arduino pls
     return press;
   }
-  void updatepress(float p){
-    press=intpress/p*100;
-  }
+//stopped makingchanges here, for future self
   
   boolean isMove(){
     if(press<pressthresh){
@@ -348,4 +342,3 @@ void mouseClicked(){
     start=false;
   }
   if (bSave.inB(mouseX, mouseY)) save(Integer.toString(month()) + Integer.toString(day()) + Integer.toString(year())+Integer.toString(minute())+ ".png");
-}
