@@ -16,8 +16,8 @@ public boolean start;
 //values
 
 public final int tim = 10; 
-final int xlen=5; //0 to 16 pins
-final int ylen=5; //0 to (16-xlen) pins
+final int xlen=1; //0 to 16 pins
+final int ylen=2; //0 to (16-xlen) pins
 public final float thresh=0.5; //fraction of initial pressure at which threshhold is reached
 float mapscale;  //coefficient for scaling of pressure map based on screen size
 float mapx; //x coordinate of left edge of pressure map
@@ -38,30 +38,31 @@ float buttonsh; //height of buttons
 //a pillow is 20 inches by 26 inches
 
 
-class Line{
+class Line{ //gridline
   private Arduino arduino; //arduino
   private int pin; //analog input pin
   private float intpress; //initial pressure value
   private float pressthresh; //threshhold for state change
   private boolean state; //currently been pressed or not
-  private float press;
-  public Line(Arduino a, int p){
-    arduino = a;
+  private float press; //current pressure of line
+  public Line(Arduino a, int p){ //arduino, arduino pin connected to sensors
+    arduino = a; //a arduino
     pin=p;
-    state=false;
+    state=false; //initially unpressed
     a.pinMode(p, Arduino.INPUT);
-    intpress=getPress();
-    pressthresh=intpress*thresh;
+    intpress=updatePress(); //get initial unpressed pressure
+    pressthresh=intpress*thresh; //pressed pressure thresshold is a fraction of the original pressure
   }
   
   float updatePress(){
-    while((press=arduino.analogRead(pin))==0){
-      delay(1);
+    while((press=arduino.analogRead(pin))==0){ //gets voltage value coming through pressure sensor, more pressure -> less voltage
+      delay(1); //sometimes the arduino gets confused
     }
+    println("aaa");
     return press;
   }
 
-  float getInit(){
+  float getInit(){ 
     return intpress;
   }
   
@@ -73,8 +74,8 @@ class Line{
     return state;
   }
   
-  boolean isMove(){
-    if(press<pressthresh){
+  boolean isMove(){ //updates state and notes whether state changed or stayed the same
+    if(press<pressthresh){ 
       if(!state){
         state=true;
         return true;
@@ -91,35 +92,36 @@ class Line{
   
 }
 
-class Point{
-  private Line x;
-  private Line y;
-  int xval;
-  int yval;
-  float c; //color
-  boolean state;
+class Point{ //a point in the grid
+  private Line x; //sensor line corresponding to x coordinate
+  private Line y; //sensor line corresponding to y
+  int xval; //x coordinate of point
+  int yval; //y coordinate
+  float c; //yellowness
+  boolean state; //whether point is being pressed
 
-  public Point(Line xl, Line yl, int xv, int yv){
+  public Point(Line xl, Line yl, int xv, int yv){ //x line, y line, value of x coordinate, value of y coordinate
     x=xl;
     y=yl;
     xval=xv;
     yval=yv;
     state=false;
-    c=0;
+    c=0; //his face all red
   }
   
   boolean isPress(){
-    return (x.getState() && y.getState());
+    return (x.getState() && y.getState()); //if point is pressed if corresponding x and y coordinates are pressed
   }
   
   boolean isMove(){
-    return (x.isMove() || y.isMove());
+    return (x.isMove() || y.isMove()); //if one line changed in state the point changed in state
   }
   
   public void drawP(float xcoord, float ycoord, float scale){
     noStroke();
-
-    if(start) c=(x.getPress()/x.getInit()+y.getPress()/y.getInit())/2*255;
+    x.updatePress();
+    y.updatePress();
+    if(start) c=(x.getPress()/x.getInit()+y.getPress()/y.getInit())*255;
     else c=0;
     fill(255, c, 0) ; //Make color range from red to yellow depending on amount of pressure
     //if(isMove()){
@@ -161,7 +163,7 @@ public class pMap{
     for(int i=0; i<xlen; i++){
       xs[i] = new Line(a, i);
       for(int j=0; j<ylen;j++){
-        ys[i]=new Line(a, j+xlen);
+        ys[j]=new Line(a, j+xlen);
         map[i][j]=new Point(xs[i],ys[j],i,j);
       }
     }
@@ -171,8 +173,14 @@ public class pMap{
    noFill();
    stroke(100);
    rect(x, y, ylen*scale, xlen*scale);
+   int i=0;
+   int j=0;
    for(Point[] ps:map){
+     print(i);
+     i++;
     for(Point p:ps){
+      println(j);
+      j++;
        if(p.isMove()) movs++;
        p.drawP(x, y, scale);
     }

@@ -30,7 +30,7 @@ class Finger{
       while(intpress==0){
         intpress=getPress();
       }
-      pressthresh=intpress*2/3; //pressure threshhold is a fraction of the initial pressure value
+      pressthresh=intpress*0.8; //pressure threshhold is a fraction of the initial pressure value
   }
   
   float getThresh(){
@@ -55,11 +55,11 @@ class Finger{
 }
 
 
-//pins
-int pinkyPin = 3; //connected to pressure sensor
-int ringPin=0;
-int midPin=1;
-int pointerPin=2;
+//pin
+int pinkyPin = 0; //connected to pressure sensor
+int ringPin=1;
+int midPin=2;
+int pointerPin=3;
 int thumPin=4;
 int ledPin=13; //yknow, the usual
 
