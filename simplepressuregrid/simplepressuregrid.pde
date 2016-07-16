@@ -42,32 +42,29 @@ class Line{ //gridline
   private Arduino arduino; //arduino
   private int pin; //analog input pin
   private float intpress; //initial pressure value
-  private float pressthresh; //threshhold for state change
   private boolean state; //currently been pressed or not
   private float press; //current pressure of line
+  private float norm;
   public Line(Arduino a, int p){ //arduino, arduino pin connected to sensors
     arduino = a; //a arduino
     pin=p;
     state=false; //initially unpressed
     a.pinMode(p, Arduino.INPUT);
     intpress=updatePress(); //get initial unpressed pressure
-    pressthresh=intpress*thresh; //pressed pressure thresshold is a fraction of the original pressure
+
   }
   
   float updatePress(){
     while((press=arduino.analogRead(pin))==0){ //gets voltage value coming through pressure sensor, more pressure -> less voltage
       delay(1); //sometimes the arduino gets confused
     }
+    norm=press/intpress;
     println("aaa");
     return press;
   }
 
-  float getInit(){ 
-    return intpress;
-  }
-  
-  float getPress(){
-    return press;
+  float getNorm(){
+    return norm;
   }
   
   boolean getState(){
@@ -75,7 +72,7 @@ class Line{ //gridline
   }
   
   boolean isMove(){ //updates state and notes whether state changed or stayed the same
-    if(press<pressthresh){ 
+    if(norm<thresh){ 
       if(!state){
         state=true;
         return true;
@@ -121,7 +118,7 @@ class Point{ //a point in the grid
     noStroke();
     x.updatePress();
     y.updatePress();
-    if(start) c=(x.getPress()/x.getInit()+y.getPress()/y.getInit())*255;
+    if(start) c=(x.getNorm()+y.getNorm())*255; //averages normalized pressure of x and y coordinate
     else c=0;
     fill(255, c, 0) ; //Make color range from red to yellow depending on amount of pressure
     //if(isMove()){
@@ -133,7 +130,7 @@ class Point{ //a point in the grid
     //}
     textSize(scale*.8/3);
     textAlign(LEFT, TOP);
-    text(Float.toString(x.getPress()+y.getPress()),xcoord+(xval+.1)*scale, ycoord+(yval+.1)*scale);
+    text(Float.toString(x.getNorm()+y.getNorm()),xcoord+(xval+.1)*scale, ycoord+(yval+.1)*scale);
    
   }
 }
