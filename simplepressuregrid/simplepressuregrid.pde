@@ -17,8 +17,8 @@ public boolean ss;
 //values
 
 public final int tim = 10; 
-final int xlen=1; //0 to 16 pins
-final int ylen=2; //0 to (16-xlen) pins
+final int xlen=6; //0 to 16 pins
+final int ylen=6; //0 to (16-xlen) pins
 public final float thresh=0.5; //fraction of initial pressure at which threshhold is reached
 float mapscale;  //coefficient for scaling of pressure map based on screen size
 float mapx; //x coordinate of left edge of pressure map
@@ -215,8 +215,8 @@ public class barGraph{ //actually a histogram
   }
   
   public void drawG(){
-    //if(start) movovtim.add(new Float(pm.drawM()));
-    if(start) movovtim.add(new Float(random(256)));
+    if(start) movovtim.add(new Float(pm.drawM()));
+    //if(start) movovtim.add(new Float(random(256)));
     if(movovtim.size()/binsize>maxbins) binsize=binsize*2;
     barw=w/(movovtim.size()/binsize);
     noFill();
@@ -339,10 +339,9 @@ void periodic(){
 
 
 void setup(){
-  //arduino = new Arduino(this, Arduino.list()[0], 57600);
+  arduino = new Arduino(this, Arduino.list()[0], 57600);
   fill(0,0,0);
   fullScreen();
-  //size(1000,600);
   margin=height*0.1;
   graphx=width*0.75;
   graphy=height*0.8;
