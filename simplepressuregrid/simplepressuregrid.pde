@@ -9,9 +9,10 @@ Button bStart;
 Button bStop;
 Button bRestart;
 Button bSave;
-//Point test;
+
 
 public boolean start;
+public boolean ss;
 
 //values
 
@@ -29,7 +30,7 @@ public float buttonsx; //x coordinate of left edge of button
 public float buttonsy; //y coordinate of top edge of top button
 float buttonsw; //width of buttons
 float buttonsh; //height of buttons
-
+int day;
 
 
 
@@ -196,25 +197,47 @@ public class barGraph{ //actually a histogram
   private float maxval;
   private float w;    //graph width
   private float h;    //graph length
+  private String xlab;
+  private String ylab;
+  private String title;
   private float m; //margin for graph position
-  public barGraph(float wid, float hei, float mar){
+  public barGraph(String xl, String yl, String t, float wid, float hei, float mar){
+    xlab=xl;
+    ylab=yl;
+    title=t;
     w=wid;
     h=hei;
     m=mar;
     movovtim=new ArrayList<Float>();
     binsize=1;
-    baryscale=h;
+    baryscale=h*5/6;
     maxbins=(int)w/10;
   }
   
   public void drawG(){
-    if(start) movovtim.add(new Float(pm.drawM()));
-    //if(start) movovtim.add(new Float(random(256)));
+    //if(start) movovtim.add(new Float(pm.drawM()));
+    if(start) movovtim.add(new Float(random(256)));
     if(movovtim.size()/binsize>maxbins) binsize=binsize*2;
     barw=w/(movovtim.size()/binsize);
     noFill();
     stroke(100,100,100);
     rect(m,m,w,h);
+    fill(200,200,200);
+    textSize(m/3);            //x axis label
+    textAlign(CENTER, TOP);
+    text(xlab,m+w/2,m*5/4+h);
+    translate(m*3/4, m+h/2);
+    rotate(-HALF_PI);
+    translate(-m*3/4, -(m+h/2));
+    textAlign(CENTER, BOTTOM);
+    text(ylab, m*3/4, m+h/2);
+    translate(m*3/4, m+h/2);
+    rotate(HALF_PI);
+    textAlign(CENTER,TOP);
+    textSize(h/15);
+    translate(-m*3/4, -(m+h/2));
+    text(title, m+w/2, m+h/60);
+    
     int i=0;
     int k=0;
     float mag=0;
@@ -228,7 +251,7 @@ public class barGraph{ //actually a histogram
         i++;
       }
       if(mag>maxval) maxval=mag;
-      baryscale=h/maxval;
+      baryscale=(h*5/6)/maxval;
       rectMode(CORNER);
       fill(255,255,255);
       stroke(200,200,200);
@@ -304,17 +327,26 @@ public class Button{
   
 }
 
+void periodic(){
+  int timer=0;
+  while(start){
+    timer++;
+    if(timer%6000==0) ss=true;
+    delay(1);
+  }
+}
+
 
 
 void setup(){
-  arduino = new Arduino(this, Arduino.list()[0], 57600);
+  //arduino = new Arduino(this, Arduino.list()[0], 57600);
   fill(0,0,0);
   fullScreen();
   //size(1000,600);
   margin=height*0.1;
   graphx=width*0.75;
   graphy=height*0.8;
-  bg=new barGraph(graphx,graphy,margin); 
+  bg=new barGraph("Time", "Amount of Movement", "Movement Throughout Sleep", graphx,graphy,margin); 
 
   
   
@@ -331,8 +363,9 @@ void setup(){
   mapy = bSave.getBottom() + margin;
   mapscale=(height-mapy-margin)/xlen;
   if((buttonsw/ylen)<mapscale) mapscale=(buttonsw)/ylen;
-  pm=new pMap(mapx, mapy, mapscale, arduino, xlen, ylen);
+  //pm=new pMap(mapx, mapy, mapscale, arduino, xlen, ylen);
   start=false;
+  ss=false;
   
   //
   background(0,0,0);
@@ -345,16 +378,20 @@ void draw(){
   bRestart.drawB();
   bSave.drawB();
   bg.drawG();
-//  pm.drawM(); //called in bg i think?
   delay(tim);
-//test.drawP(mapx,mapy,mapscale);
-//println(test.getPress());
+  if(ss) save("screenshots/" + Integer.toString(year())+ "/" + Integer.toString(month()) + "/" + Integer.toString(day) + "/" + Integer.toString(hour())+ "_" +Integer.toString(minute())+ ".png");
+  ss=false;
+  
+
 
 
 }
 
 void mouseClicked(){
-  if (bStart.inB(mouseX, mouseY)) start=true;
+  if (bStart.inB(mouseX, mouseY)){
+    start=true;
+    thread("periodic");
+  }
   if (bStop.inB(mouseX, mouseY)) start=false;
   if (bRestart.inB(mouseX,mouseY)){
     bg.clear();
