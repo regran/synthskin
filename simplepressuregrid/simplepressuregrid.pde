@@ -19,7 +19,7 @@ public boolean ss;
 public final int tim = 10; 
 final int xlen=6; //0 to 16 pins
 final int ylen=6; //0 to (16-xlen) pins
-public final float thresh=0.5; //fraction of initial pressure at which threshhold is reached
+public final float thresh=0.85; //fraction of initial pressure at which threshhold is reached
 float mapscale;  //coefficient for scaling of pressure map based on screen size
 float mapx; //x coordinate of left edge of pressure map
 float mapy; //y coordinate of top edge of pressure map
@@ -97,6 +97,7 @@ class Point{ //a point in the grid
   int yval; //y coordinate
   float c; //yellowness
   boolean state; //whether point is being pressed
+  boolean move;
 
   public Point(Line xl, Line yl, int xv, int yv){ //x line, y line, value of x coordinate, value of y coordinate
     x=xl;
@@ -104,6 +105,7 @@ class Point{ //a point in the grid
     xval=xv;
     yval=yv;
     state=false;
+    move = false;
     c=0; //his face all red
   }
   
@@ -112,29 +114,36 @@ class Point{ //a point in the grid
   }
   
   boolean isMove(){
-    return (x.isMove() || y.isMove()); //if one line changed in state the point changed in state
+    return (move = (x.isMove() || y.isMove())); //if one line changed in state the point changed in state
+  }
+  
+  boolean getMove(){
+    return move;
   }
   
   public void drawP(float xcoord, float ycoord, float scale){
     noStroke();
     x.updatePress();
     y.updatePress();
-    if(start) c=(x.getNorm()+y.getNorm())*255; //averages normalized pressure of x and y coordinate
+    if(start) c=(x.getNorm()+y.getNorm()-1.5)*255*2`; //averages normalized pressure of x and y coordinate
     else c=0;
-    fill(255, c, 0) ; //Make color range from red to yellow depending on amount of pressure
-    //if(isMove()){
-    //  rect(xcoord+(xval+.1)*scale, ycoord+(trigPin+.1)*scale, scale*.8, scale*.8);
-    //}
-    //else{
-    //  ellipseMode(CORNER);
-    //  ellipse(xcoord+(sxval+.1)*scale, ycoord+(yval+.1)*scale, scale*.8, scale*.8);
-    //}
-    textSize(scale*.8/3);
-    textAlign(LEFT, TOP);
-    text(Float.toString(x.getNorm()+y.getNorm()),xcoord+(xval+.1)*scale, ycoord+(yval+.1)*scale);
+    fill(255, c, 0); //Make color range from red to yellow depending on amount of pressure
+    if(isMove()){
+      
+      rect(xcoord+(xval+.1)*scale, ycoord+(yval+.1)*scale, scale*.8, scale*.8);
+    }
+    else{
+
+      ellipseMode(CORNER);
+      ellipse(xcoord+(xval+.1)*scale, ycoord+(yval+.1)*scale, scale*.8, scale*.8);
+    }
+    //textSize(scale*.8/3);
+    //textAlign(LEFT, TOP);
+    //text(Float.toString(x.getNorm()+y.getNorm()),xcoord+(xval+.1)*scale, ycoord+(yval+.1)*scale);
    
   }
 }
+
   
 
 public class pMap{
@@ -179,7 +188,7 @@ public class pMap{
     for(Point p:ps){
       println(j);
       j++;
-       if(p.isMove()) movs++;
+       if(p.getMove()) movs++;
        p.drawP(x, y, scale);
     }
    }
@@ -362,7 +371,7 @@ void setup(){
   mapy = bSave.getBottom() + margin;
   mapscale=(height-mapy-margin)/xlen;
   if((buttonsw/ylen)<mapscale) mapscale=(buttonsw)/ylen;
-  //pm=new pMap(mapx, mapy, mapscale, arduino, xlen, ylen);
+  pm=new pMap(mapx, mapy, mapscale, arduino, xlen, ylen);
   start=false;
   ss=false;
   

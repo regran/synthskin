@@ -37,7 +37,7 @@ void getCol(int dp){
 int getDelay(int ap){
 
   int count=0;
-  while(arduino.analogRead(ap)==0){
+  while(arduino.analogRead(ap)==0 && count<5000){
     count++;
 
     delay(1);
@@ -65,9 +65,8 @@ int getDelay(int ap){
 //    delay(1);
 //  return count;
 //}
-
 void draw(){
-  for(int i=0; i<3; i++){
+  for(int i=0; i<14; i++){
        print(i);
        getDelay(i);
        
