@@ -125,11 +125,10 @@ class Point{ //a point in the grid
     noStroke();
     x.updatePress();
     y.updatePress();
-    if(start) c=(x.getNorm()+y.getNorm()-1.5)*255*2`; //averages normalized pressure of x and y coordinate
+    if(start) c=(x.getNorm()+y.getNorm()-1.5)*255*2; //averages normalized pressure of x and y coordinate
     else c=0;
     fill(255, c, 0); //Make color range from red to yellow depending on amount of pressure
     if(isMove()){
-      
       rect(xcoord+(xval+.1)*scale, ycoord+(yval+.1)*scale, scale*.8, scale*.8);
     }
     else{
@@ -340,7 +339,7 @@ void periodic(){
   int timer=0;
   while(start){
     timer++;
-    if(timer%6000==0) ss=true;
+    if(timer%60000==0) ss=true;
     delay(1);
   }
 }
@@ -375,6 +374,7 @@ void setup(){
   start=false;
   ss=false;
   
+  day=day();
   //
   background(0,0,0);
 }
